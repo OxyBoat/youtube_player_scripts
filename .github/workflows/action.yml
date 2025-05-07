@@ -71,12 +71,27 @@ jobs:
           git commit -m "chore: add new player script for $NEW_DIR"
           git push origin "$BRANCH"
 
-      - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v5
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          branch: ${{ format('add-player-{0}', steps.run-script.outputs.new_dir) }}
-          base: main  # Specify the base branch here
-          title: Add player script for ${{ steps.run-script.outputs.new_dir }}
-          body: |
-            This PR adds a new player script directory: `${{ steps.run-script.outputs.new_dir }}`
+      - name: Create PR if new directory exists
+        if: steps.run-script.outputs.no_new_dir == 'false'
+        run: |
+          NEW_DIR="${{ steps.run-script.outputs.new_dir }}"
+          BRANCH_NAME="add-player-${NEW_DIR}"
+
+          # Configure git
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Create and push new branch
+          git checkout -b "$BRANCH_NAME"
+          git add "$NEW_DIR"
+          git commit -m "chore: add new player script for $NEW_DIR"
+          git push origin "$BRANCH_NAME"
+
+          # Create PR
+          gh pr create \
+            --base main \
+            --head "$BRANCH_NAME" \
+            --title "Add player script for $NEW_DIR" \
+            --body "This PR adds a new player script directory: \`$NEW_DIR\`"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
