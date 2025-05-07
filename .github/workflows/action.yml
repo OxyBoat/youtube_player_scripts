@@ -50,11 +50,11 @@ jobs:
 
           if [ -z "$NEW_DIR" ]; then
             echo "no_new_dir=true" >> "$GITHUB_OUTPUT"
-            echo "❌ No new directory created by script."
-            exit 0  # Exit successfully but indicate no changes
+            echo "No new directory created by script."
+            exit 0
           fi
 
-          echo "✅ Detected new player directory: $NEW_DIR"
+          echo "Detected new player directory: $NEW_DIR"
           echo "new_dir=$NEW_DIR" >> "$GITHUB_OUTPUT"
           echo "no_new_dir=false" >> "$GITHUB_OUTPUT"
 
@@ -81,4 +81,4 @@ jobs:
             --title "Add player script for $NEW_DIR" \
             --body "This PR adds a new player script directory: \`$NEW_DIR\`"
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
