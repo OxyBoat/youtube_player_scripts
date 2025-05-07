@@ -22,6 +22,10 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+      - name: Install UV & deps
+        run: |
+          pip install uv
+          uv sync
 
       - name: Run script and detect new player script
         id: run-script
@@ -32,7 +36,7 @@ jobs:
           BEFORE=$(find . -maxdepth 1 -type d -not -name ".git" -exec basename {} \; | sort)
 
           # Run the Python script
-          python workflow.py
+          uv run workflow.py
 
           # Capture list of directories after
           AFTER=$(find . -maxdepth 1 -type d -not -name ".git" -exec basename {} \; | sort)
