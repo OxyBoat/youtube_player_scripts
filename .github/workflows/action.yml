@@ -17,11 +17,15 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+        with:
+          ref: main  # Specify the base branch here
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+          cache: 'pip'
+
       - name: Install UV & deps
         run: |
           pip install uv
@@ -45,7 +49,7 @@ jobs:
           NEW_DIR=$(comm -13 <(echo "$BEFORE") <(echo "$AFTER") | head -n 1)
 
           if [ -z "$NEW_DIR" ]; then
-            echo "❌ No new directory created by script."
+            echo "No new directory created by script." >> "$GITHUB_OUTPUT"
             exit 1
           fi
 
@@ -72,6 +76,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: ${{ format('add-player-{0}', steps.run-script.outputs.new_dir) }}
+          base: main  # Specify the base branch here
           title: Add player script for ${{ steps.run-script.outputs.new_dir }}
           body: |
             This PR adds a new player script directory: `${{ steps.run-script.outputs.new_dir }}`
