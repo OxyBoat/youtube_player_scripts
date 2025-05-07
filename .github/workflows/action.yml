@@ -3,7 +3,8 @@ name: Update YouTube Player Script
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 * * * *"   # every hour
+    - cron: "*/1 * * * *" #every minute for testing purposes
+      
 
 permissions:
   contents: write
@@ -32,6 +33,7 @@ jobs:
       - name: Snapshot before (dirs only)
         run: |
           find . -maxdepth 1 -mindepth 1 -type d -not -path "*/\.*" -printf "%f\n" | sort > before.txt
+          cat before.txt
 
       - name: Fetch and build JS
         run: uv run workflow.py
@@ -39,10 +41,13 @@ jobs:
       - name: Snapshot after (dirs only)
         run: |
           find . -maxdepth 1 -mindepth 1 -type d -not -path "*/\.*" -printf "%f\n" | sort > after.txt
+          cat after.txt
 
       - name: Detect new directory
         id: detect
         run: |
+          echo "Diff:"
+          comm -13 before.txt after.txt
           NEW_DIR=$(comm -13 before.txt after.txt | head -n1)
           if [ -z "$NEW_DIR" ]; then
             echo "skip=true" >> $GITHUB_OUTPUT
@@ -56,12 +61,9 @@ jobs:
         if: steps.detect.outputs.skip == 'true'
         run: echo "Nothing to update."
 
-      - name: Debug file listing
+      - name: Debug new directory
         if: steps.detect.outputs.skip != 'true'
-        run: |
-          PLAYER_ID="${{ steps.detect.outputs.player_id }}"
-          echo "New directory contents:"
-          ls -la "$PLAYER_ID"
+        run: ls -la "${{ steps.detect.outputs.player_id }}"
 
       - name: Configure Git
         if: steps.detect.outputs.skip != 'true'
@@ -73,7 +75,8 @@ jobs:
         if: steps.detect.outputs.skip != 'true'
         id: branch-check
         run: |
-          if git ls-remote --heads origin "refs/heads/${{ steps.detect.outputs.branch }}" | grep -q .; then
+          BRANCH="${{ steps.detect.outputs.branch }}"
+          if git ls-remote --heads origin "$BRANCH" | grep -q .; then
             echo "exists=true" >> $GITHUB_OUTPUT
           else
             echo "exists=false" >> $GITHUB_OUTPUT
@@ -85,22 +88,14 @@ jobs:
           PLAYER_ID="${{ steps.detect.outputs.player_id }}"
           BRANCH="${{ steps.detect.outputs.branch }}"
           
-          echo "Creating branch $BRANCH for player $PLAYER_ID"
+          git checkout main
+          git pull origin main
           git checkout -b "$BRANCH"
-        
-        
+
           rm -f before.txt after.txt
-          
-          
-          git status
-          
-          
           git add -f "$PLAYER_ID"
-          
-          
+
           git status
-          
-          
           git commit -m "chore: update YouTube player script for $PLAYER_ID"
           git push --set-upstream origin "$BRANCH"
 
@@ -115,6 +110,9 @@ jobs:
           commit-message: "chore: update YouTube player script for ${{ steps.detect.outputs.player_id }}"
           body: |
             This PR updates the YouTube decryption script for player ID `${{ steps.detect.outputs.player_id }}`.
-            - Generated on ${{ github.run_id }}
+            - Generated on run ID `${{ github.run_id }}`
             - Includes the new `base.js` bundle.
           labels: automated
+          draft: false
+          delete-branch: false
+          debug: true
